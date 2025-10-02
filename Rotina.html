@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano de Treino para Hipertrofia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Stone, Amber, White) -->
+    <!-- Application Structure Plan: A tabbed-dashboard interface was chosen for its intuitive navigation of a weekly schedule. The main user flow is selecting a day via a top navigation bar, which dynamically displays that day's exercises in a central content area. This avoids a long scroll and provides immediate access to relevant information. A static donut chart provides a high-level weekly overview of muscle group distribution, and a separate tab for 'Dicas' keeps important, non-daily information accessible but distinct from the core workout lists, enhancing usability and focus. -->
+    <!-- Visualization & Content Choices: Report Info: Weekly exercise list -> Goal: Organize/Inform -> Viz/Presentation Method: The core workout plan is presented using dynamically generated HTML cards for each day, which is clear and easy to read. A summary donut chart visualizes the number of exercises per muscle group for the entire week. -> Interaction: User clicks on day tabs to switch the displayed workout card list. The chart is static for a consistent overview. -> Justification: This combination provides both detailed daily instructions and a high-level summary of the plan's balance, improving user understanding. The tabbed interaction is a standard, user-friendly pattern for this type of scheduled content. -> Library/Method: Chart.js (Canvas) for the donut chart, Vanilla JS for tab functionality and DOM manipulation. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: auto;
+            max-height: 400px;
+        }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-800">
+
+    <div class="container mx-auto p-4 sm:p-6 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-amber-600">Rotina de Treino para Hipertrofia</h1>
+            <p class="text-stone-600 mt-2">Seu plano de 5 dias para maximizar o ganho de massa muscular.</p>
+        </header>
+
+        <nav class="flex flex-wrap justify-center gap-2 mb-8">
+            <button data-day="segunda" class="nav-button bg-amber-600 text-white px-4 py-2 rounded-md font-semibold shadow-sm transition-all duration-300">Segunda</button>
+            <button data-day="terca" class="nav-button bg-white text-stone-700 px-4 py-2 rounded-md font-semibold shadow-sm transition-all duration-300 hover:bg-stone-100">Terça</button>
+            <button data-day="quarta" class="nav-button bg-white text-stone-700 px-4 py-2 rounded-md font-semibold shadow-sm transition-all duration-300 hover:bg-stone-100">Quarta</button>
+            <button data-day="quinta" class="nav-button bg-white text-stone-700 px-4 py-2 rounded-md font-semibold shadow-sm transition-all duration-300 hover:bg-stone-100">Quinta</button>
+            <button data-day="sexta" class="nav-button bg-white text-stone-700 px-4 py-2 rounded-md font-semibold shadow-sm transition-all duration-300 hover:bg-stone-100">Sexta</button>
+            <button data-day="dicas" class="nav-button bg-white text-stone-700 px-4 py-2 rounded-md font-semibold shadow-sm transition-all duration-300 hover:bg-stone-100">Dicas</button>
+        </nav>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            <div id="content-display" class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+            </div>
+
+            <aside class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-bold text-center mb-4 text-stone-700">Distribuição Semanal por Grupo Muscular</h2>
+                <p class="text-center text-sm text-stone-500 mb-4">Esta visualização mostra o número total de exercícios focados em cada grupo muscular principal ao longo da semana, ajudando a entender o equilíbrio geral do seu plano de treino.</p>
+                <div class="chart-container">
+                    <canvas id="muscleGroupChart"></canvas>
+                </div>
+            </aside>
+        </main>
+
+    </div>
+
+    <script>
+        const workoutData = {
+            segunda: {
+                title: "Peito + Tríceps (Empurrar)",
+                exercises: [
+                    { name: "Supino reto com barra", sets: "4x", reps: "8-12" },
+                    { name: "Supino inclinado com halteres", sets: "3x", reps: "8-12" },
+                    { name: "Crucifixo reto ou inclinado", sets: "3x", reps: "12-15" },
+                    { name: "Mergulho em paralelas", sets: "3x", reps: "10-12" },
+                    { name: "Tríceps testa com barra EZ", sets: "3x", reps: "10-12" },
+                    { name: "Tríceps pulley (corda)", sets: "3x", reps: "12-15" }
+                ]
+            },
+            terca: {
+                title: "Costas + Bíceps (Puxar)",
+                exercises: [
+                    { name: "Puxada na frente (barra ou polia)", sets: "4x", reps: "8-12" },
+                    { name: "Remada curvada com barra", sets: "4x", reps: "8-12" },
+                    { name: "Remada unilateral com halteres", sets: "3x", reps: "10-12" },
+                    { name: "Rosca direta com barra EZ", sets: "3x", reps: "8-12" },
+                    { name: "Rosca alternada com halteres", sets: "3x", reps: "10-12" },
+                    { name: "Rosca concentrada", sets: "2x", reps: "12-15" }
+                ]
+            },
+            quarta: {
+                title: "Ombros + Trapézio",
+                exercises: [
+                    { name: "Desenvolvimento com barra ou halteres", sets: "4x", reps: "8-12" },
+                    { name: "Elevação lateral", sets: "4x", reps: "12-15" },
+                    { name: "Elevação frontal", sets: "3x", reps: "12-15" },
+                    { name: "Encolhimento de ombros com barra", sets: "4x", reps: "10-15" },
+                    { name: "Remada alta com barra ou polia", sets: "3x", reps: "10-12" }
+                ]
+            },
+            quinta: {
+                title: "Pernas + Core",
+                exercises: [
+                    { name: "Agachamento livre", sets: "4x", reps: "8-12" },
+                    { name: "Leg press", sets: "3x", reps: "10-12" },
+                    { name: "Stiff ou Levantamento Terra Romeno", sets: "3x", reps: "8-12" },
+                    { name: "Panturrilha (sentado ou em pé)", sets: "4x", reps: "12-15" },
+                    { name: "Prancha", sets: "3x", reps: "30-60s" },
+                    { name: "Abdominal infra", sets: "3x", reps: "15-20" }
+                ]
+            },
+            sexta: {
+                title: "Superiores (Corpo Inteiro)",
+                exercises: [
+                    { name: "Supino reto com halteres", sets: "3x", reps: "8-12" },
+                    { name: "Puxada na frente", sets: "3x", reps: "8-12" },
+                    { name: "Desenvolvimento com halteres", sets: "3x", reps: "8-12" },
+                    { name: "Remada unilateral", sets: "3x", reps: "10-12" },
+                    { name: "Rosca direta", sets: "3x", reps: "10-12" },
+                    { name: "Tríceps pulley", sets: "3x", reps: "12-15" },
+                    { name: "Elevação lateral", sets: "3x", reps: "12-15" }
+                ]
+            },
+            dicas: {
+                title: "Dicas Importantes para seu Treino",
+                points: [
+                    { title: "Intervalo entre Séries", icon: "⏱️", text: "Descanse de 90 a 120 segundos para exercícios compostos (ex: agachamento, supino) e de 60 a 90 segundos para exercícios isolados (ex: rosca direta, elevação lateral)." },
+                    { title: "Carga Ideal", icon: "⚖️", text: "Escolha um peso que o desafie a completar a faixa de repetições proposta, mantendo sempre a boa forma e a execução correta do movimento." },
+                    { title: "Progressão de Carga", icon: "📈", text: "Para continuar estimulando o crescimento muscular, tente aumentar a carga ou o número de repetições a cada semana de forma gradual e consistente." },
+                    { title: "Alongamento", icon: "🧘", text: "Realize alongamentos antes e depois de cada sessão, com foco especial nos ombros e peitoral para melhorar a flexibilidade e ajudar na prevenção de lesões." }
+                ]
+            }
+        };
+
+        const contentDisplay = document.getElementById('content-display');
+        const navButtons = document.querySelectorAll('.nav-button');
+
+        function renderContent(day) {
+            const data = workoutData[day];
+            contentDisplay.innerHTML = '';
+
+            const titleElement = document.createElement('h2');
+            titleElement.className = "text-2xl font-bold text-stone-700 mb-1";
+            titleElement.textContent = `Treino de ${day.charAt(0).toUpperCase() + day.slice(1).replace('terca', 'Terça').replace('quarta', 'Quarta').replace('quinta', 'Quinta').replace('sexta', 'Sexta')}`;
+            
+            const subtitleElement = document.createElement('h3');
+            subtitleElement.className = "text-lg font-semibold text-amber-600 mb-6";
+            subtitleElement.textContent = data.title;
+            
+            contentDisplay.appendChild(titleElement);
+            contentDisplay.appendChild(subtitleElement);
+
+            if (day === 'dicas') {
+                const list = document.createElement('div');
+                list.className = 'space-y-6';
+                data.points.forEach(point => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-start gap-4';
+                    item.innerHTML = `
+                        <div class="text-3xl">${point.icon}</div>
+                        <div>
+                            <h4 class="font-bold text-stone-700">${point.title}</h4>
+                            <p class="text-stone-600">${point.text}</p>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+                contentDisplay.appendChild(list);
+            } else {
+                const list = document.createElement('div');
+                list.className = 'space-y-4';
+                data.exercises.forEach(exercise => {
+                    const item = document.createElement('div');
+                    item.className = 'bg-stone-50 p-4 rounded-lg flex justify-between items-center transition-all duration-300 hover:shadow-md';
+                    item.innerHTML = `
+                        <span class="font-semibold text-stone-700 w-3/5">${exercise.name}</span>
+                        <span class="text-amber-600 font-bold text-right">${exercise.sets} ${exercise.reps}</span>
+                    `;
+                    list.appendChild(item);
+                });
+                contentDisplay.appendChild(list);
+            }
+        }
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const day = button.dataset.day;
+
+                navButtons.forEach(btn => {
+                    btn.classList.remove('bg-amber-600', 'text-white');
+                    btn.classList.add('bg-white', 'text-stone-700', 'hover:bg-stone-100');
+                });
+                
+                button.classList.add('bg-amber-600', 'text-white');
+                button.classList.remove('bg-white', 'text-stone-700', 'hover:bg-stone-100');
+                
+                renderContent(day);
+            });
+        });
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            renderContent('segunda');
+
+            const ctx = document.getElementById('muscleGroupChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Peito', 'Costas', 'Ombros & Trapézio', 'Pernas & Core', 'Bíceps & Tríceps'],
+                    datasets: [{
+                        label: 'Nº de Exercícios',
+                        data: [3, 5, 7, 6, 8],
+                        backgroundColor: [
+                            'rgba(217, 119, 6, 0.8)',   // amber-600
+                            'rgba(234, 179, 8, 0.8)',  // yellow-500
+                            'rgba(249, 115, 22, 0.8)', // orange-500
+                            'rgba(239, 68, 68, 0.8)',  // red-500
+                            'rgba(168, 85, 247, 0.8)'  // purple-500
+                        ],
+                        borderColor: [
+                            'rgba(217, 119, 6, 1)',
+                            'rgba(234, 179, 8, 1)',
+                            'rgba(249, 115, 22, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(168, 85, 247, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' exercícios';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
