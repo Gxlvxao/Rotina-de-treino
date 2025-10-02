@@ -363,4 +363,224 @@
                         title: "Nutrição", 
                         icon: "🥗", 
                         text: "Consuma proteínas de qualidade e carboidratos complexos para apoiar o crescimento muscular. Uma refeição pós-treino adequada é essencial para a recuperação.",
-                        color: "from-pink-50 to-pi
+                        color: "from-pink-50 to-pink-100"
+                    }
+                ]
+            }
+        };
+
+        const contentDisplay = document.getElementById('content-display');
+        const navButtons = document.querySelectorAll('.nav-button');
+        const statsCard = document.getElementById('stats-card');
+        let currentDay = 'segunda';
+
+        // Load saved progress from localStorage
+        function loadProgress() {
+            const saved = localStorage.getItem('workoutProgress');
+            return saved ? JSON.parse(saved) : {};
+        }
+
+        // Save progress to localStorage
+        function saveProgress(progress) {
+            localStorage.setItem('workoutProgress', JSON.stringify(progress));
+        }
+
+        // Update progress stats
+        function updateProgressStats() {
+            const data = workoutData[currentDay];
+            if (!data.exercises) {
+                statsCard.style.display = 'none';
+                return;
+            }
+            
+            statsCard.style.display = 'block';
+            const progress = loadProgress();
+            const dayProgress = progress[currentDay] || {};
+            const completed = Object.values(dayProgress).filter(v => v).length;
+            const total = data.exercises.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            document.getElementById('completed-count').textContent = completed;
+            document.getElementById('total-count').textContent = total;
+            document.getElementById('progress-percent').textContent = percentage;
+
+            // Update progress circle
+            const circle = document.getElementById('progress-circle');
+            const circumference = 213.628;
+            const offset = circumference - (percentage / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        // Render workout content
+        function renderContent(day) {
+            currentDay = day;
+            const data = workoutData[day];
+            contentDisplay.innerHTML = '';
+
+            const titleElement = document.createElement('div');
+            titleElement.className = "mb-6";
+            titleElement.innerHTML = `
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-4xl">${data.emoji}</span>
+                    <h2 class="text-3xl font-extrabold text-gray-800">
+                        ${day.charAt(0).toUpperCase() + day.slice(1).replace('terca', 'Terça').replace('quarta', 'Quarta').replace('quinta', 'Quinta').replace('sexta', 'Sexta')}
+                    </h2>
+                </div>
+                <h3 class="text-lg font-semibold text-purple-600 ml-14">
+                    ${data.title}
+                </h3>
+            `;
+            contentDisplay.appendChild(titleElement);
+
+            if (day === 'dicas') {
+                const list = document.createElement('div');
+                list.className = 'space-y-4';
+                data.points.forEach(point => {
+                    const item = document.createElement('div');
+                    item.className = `tip-card p-5 rounded-xl bg-gradient-to-r ${point.color}`;
+                    item.innerHTML = `
+                        <div class="flex items-start gap-4">
+                            <div class="text-3xl flex-shrink-0">${point.icon}</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-800 text-lg mb-2">${point.title}</h4>
+                                <p class="text-gray-700 leading-relaxed">${point.text}</p>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+                contentDisplay.appendChild(list);
+            } else {
+                const progress = loadProgress();
+                const dayProgress = progress[day] || {};
+
+                const list = document.createElement('div');
+                list.className = 'space-y-3';
+                
+                data.exercises.forEach((exercise, index) => {
+                    const isCompleted = dayProgress[exercise.id] || false;
+                    const item = document.createElement('div');
+                    item.className = `exercise-item p-4 rounded-xl flex items-center gap-4 ${isCompleted ? 'completed' : 'bg-gradient-to-r from-gray-50 to-white border border-gray-200'}`;
+                    item.innerHTML = `
+                        <input type="checkbox" 
+                               class="checkbox-custom" 
+                               id="${exercise.id}"
+                               ${isCompleted ? 'checked' : ''}>
+                        <div class="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <label for="${exercise.id}" class="exercise-name font-semibold text-gray-800 cursor-pointer flex-1">
+                                ${index + 1}. ${exercise.name}
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span class="badge">
+                                    ${exercise.sets} ${exercise.reps}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const checkbox = item.querySelector('.checkbox-custom');
+                    checkbox.addEventListener('change', (e) => {
+                        const progress = loadProgress();
+                        if (!progress[day]) progress[day] = {};
+                        progress[day][exercise.id] = e.target.checked;
+                        saveProgress(progress);
+                        
+                        if (e.target.checked) {
+                            item.classList.add('completed');
+                        } else {
+                            item.classList.remove('completed');
+                        }
+                        
+                        updateProgressStats();
+                    });
+                    
+                    list.appendChild(item);
+                });
+                contentDisplay.appendChild(list);
+            }
+
+            updateProgressStats();
+        }
+
+        // Navigation button click handlers
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const day = button.dataset.day;
+
+                navButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.classList.add('glass-effect');
+                });
+                
+                button.classList.add('active');
+                button.classList.remove('glass-effect');
+                
+                renderContent(day);
+            });
+        });
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderContent('segunda');
+
+            // Create chart
+            const ctx = document.getElementById('muscleGroupChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Peito', 'Costas', 'Ombros & Trapézio', 'Pernas & Core', 'Bíceps & Tríceps'],
+                    datasets: [{
+                        label: 'Nº de Exercícios',
+                        data: [3, 5, 7, 6, 8],
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(118, 75, 162, 0.8)',
+                            'rgba(237, 100, 166, 0.8)',
+                            'rgba(255, 154, 158, 0.8)',
+                            'rgba(250, 208, 196, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(102, 126, 234, 1)',
+                            'rgba(118, 75, 162, 1)',
+                            'rgba(237, 100, 166, 1)',
+                            'rgba(255, 154, 158, 1)',
+                            'rgba(250, 208, 196, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 11,
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' exercícios';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
